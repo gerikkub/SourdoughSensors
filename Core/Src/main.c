@@ -21,12 +21,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usart.h"
-#include "usb_otg.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "one_wire.h"
+#include "spi_gpio.h"
+#include "ff.h"
+#include "sour_fs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,7 +92,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
@@ -110,7 +111,97 @@ int main(void)
 
    // ONE_WIRE_GPIO_Port->ODR &= ~(ONE_WIRE_Pin);
    // ONE_WIRE_GPIO_Port->MODER &= (3 << (ONE_WIRE_Pin * 2));
+  char tempStr[256];
+  int len;
 
+  init_spi_gpio();
+
+  init_sd_card();
+
+  FATFS fs;
+  // DIR root_dir;
+  // FILINFO file_info;
+  FRESULT res;
+
+  res = f_mount(&fs, "", 0);
+  if (res != FR_OK) {
+    while (1);
+  }
+
+  uint32_t trial_num;
+
+  trial_num = create_trial();
+
+  if (trial_num == 0) {
+    while(1);
+  }
+
+  struct TrialEntry entry;
+
+  entry.ts = 1;
+  entry.temp_dn[0] = 1000;
+  entry.temp_dn[1] = 1001;
+  entry.temp_dn[2] = 1002;
+  entry.temp_dn[3] = 1003;
+  entry.temp_dn[4] = 1004;
+  entry.have_img = false;
+  entry.img_num = 0;
+
+  if(!add_trial_entry(trial_num, &entry, NULL, 0)) {
+    while (1);
+  }
+
+  entry.ts = 2;
+  entry.temp_dn[0] = 1100;
+  entry.temp_dn[1] = 1101;
+  entry.temp_dn[2] = 1102;
+  entry.temp_dn[3] = 1103;
+  entry.temp_dn[4] = 1104;
+  entry.have_img = true;
+  entry.img_num = 1;
+
+  uint8_t dummy_img[] = "MyJpg";
+
+  if (!add_trial_entry(trial_num, &entry, dummy_img, sizeof(dummy_img))) {
+    while (1);
+  }
+
+  entry.ts = 3;
+  entry.temp_dn[0] = 1200;
+  entry.temp_dn[1] = 1201;
+  entry.temp_dn[2] = 1202;
+  entry.temp_dn[3] = 1203;
+  entry.temp_dn[4] = 1204;
+  entry.have_img = false;
+  entry.img_num = 0;
+
+  if (!add_trial_entry(trial_num, &entry, NULL, 0)) {
+    while (1);
+  }
+
+  while (1);
+
+  // res = f_opendir(&root_dir, "/");
+  // if (res != FR_OK) {
+  //   while (1);
+  // }
+
+  // do {
+
+  //   f_readdir(&root_dir, &file_info);
+  //   if (res != FR_OK) {
+  //     break;
+  //   }
+
+  //   if (file_info.fname[0] != '\0') {
+  //     len = snprintf(tempStr, 256, "/%s\r\n", file_info.fname);
+  //     HAL_UART_Transmit(&huart, tempStr, len, 10000);
+  //   }
+
+
+  // } while (file_info.fname[0] != '\0');
+
+  while(1);
 
   one_wire_init();
 
@@ -122,12 +213,10 @@ int main(void)
   // (void)one_wire_read_bit();
 
   volatile uint16_t temp;
-  int len;
 
 
   (void)temp;
 
-  char tempStr[256];
 
   struct OneWireDevice devices[8];
 
